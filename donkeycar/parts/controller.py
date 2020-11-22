@@ -136,364 +136,6 @@ class Joystick(object):
 
         return button, button_state, axis, axis_val
 
-
-class PyGameJoystick(object):
-    def __init__( self,
-                  poll_delay=0.0,
-                  throttle_scale=1.0,
-                  steering_scale=1.0,
-                  throttle_dir=-1.0,
-                  dev_fn='/dev/input/js0',
-                  auto_record_on_throttle=True,
-                  which_js=0):
-
-        import pygame
-
-        pygame.init()
-
-        # Initialize the joysticks
-        pygame.joystick.init()
-
-        self.joystick = pygame.joystick.Joystick(which_js)
-        self.joystick.init()
-        name = self.joystick.get_name()
-        print("detected joystick device:", name)
-
-        self.axis_states = [ 0.0 for i in range(self.joystick.get_numaxes())]
-        self.button_states = [ 0 for i in range(self.joystick.get_numbuttons() + self.joystick.get_numhats() * 4)]
-        self.axis_names = {}
-        self.button_names = {}
-        self.dead_zone = 0.07
-        for i in range(self.joystick.get_numaxes()):
-            self.axis_names[i] = i
-        for i in range(self.joystick.get_numbuttons() + self.joystick.get_numhats() * 4):
-            self.button_names[i] = i
-
-    def poll(self):
-        import pygame
-
-        button = None
-        button_state = None
-        axis = None
-        axis_val = None
-
-        pygame.event.get()
-
-
-        for i in range( self.joystick.get_numaxes() ):
-            val = self.joystick.get_axis( i )
-            if abs(val) < self.dead_zone:
-                val = 0.0
-            if self.axis_states[i] != val and i in self.axis_names:
-                axis = self.axis_names[i]
-                axis_val = val
-                self.axis_states[i] = val
-                logging.debug("axis: %s val: %f" % (axis, val))
-                #print("axis: %s val: %f" % (axis, val))
-
-
-        for i in range( self.joystick.get_numbuttons() ):
-            state = self.joystick.get_button( i )
-            if self.button_states[i] != state:
-                if not i in self.button_names:
-                    print('button:', i)
-                    continue
-                button = self.button_names[i]
-                button_state = state
-                self.button_states[i] = state
-                logging.info("button: %s state: %d" % (button, state))
-                #print("button: %s state: %d" % (button, state))
-
-        for i in range( self.joystick.get_numhats() ):
-            hat = self.joystick.get_hat( i )
-            horz, vert = hat
-            iBtn = self.joystick.get_numbuttons() + (i * 4)
-            states = (horz == -1, horz == 1, vert == -1, vert == 1)
-            for state in states:
-                state = int(state)
-                if self.button_states[iBtn] != state:
-                    if not iBtn in self.button_names:
-                        print("button:", iBtn)
-                        continue
-                    button = self.button_names[iBtn]
-                    button_state = state
-                    self.button_states[iBtn] = state
-                    logging.info("button: %s state: %d" % (button, state))
-                    #print("button: %s state: %d" % (button, state))
-
-                iBtn += 1
-
-        return button, button_state, axis, axis_val
-        
-    def set_deadzone(self, val):
-        self.dead_zone = val
-
-
-class JoystickCreator(Joystick):
-    '''
-    A Helper class to create a new joystick mapping
-    '''
-    def __init__(self, *args, **kwargs):
-        super(JoystickCreator, self).__init__(*args, **kwargs)
-
-        self.axis_names = {}
-        self.button_names = {}
-
-    def poll(self):
-
-        button, button_state, axis, axis_val = super(JoystickCreator, self).poll()
-
-        return button, button_state, axis, axis_val
-
-
-class PS3JoystickOld(Joystick):
-    '''
-    An interface to a physical PS3 joystick available at /dev/input/js0
-    Contains mapping that worked for Raspian Jessie drivers
-    '''
-    def __init__(self, *args, **kwargs):
-        super(PS3JoystickOld, self).__init__(*args, **kwargs)
-
-        self.axis_names = {
-            0x00 : 'left_stick_horz',
-            0x01 : 'left_stick_vert',
-            0x02 : 'right_stick_horz',
-            0x05 : 'right_stick_vert',
-
-            0x1a : 'tilt_x',
-            0x1b : 'tilt_y',
-            0x3d : 'tilt_a',
-            0x3c : 'tilt_b',
-
-            0x32 : 'L1_pressure',
-            0x33 : 'R1_pressure',
-            0x31 : 'R2_pressure',
-            0x30 : 'L2_pressure',
-
-            0x36 : 'cross_pressure',
-            0x35 : 'circle_pressure',
-            0x37 : 'square_pressure',
-            0x34 : 'triangle_pressure',
-
-            0x2d : 'dpad_r_pressure',
-            0x2e : 'dpad_d_pressure',
-            0x2c : 'dpad_u_pressure',
-        }
-
-        self.button_names = {
-            0x120 : 'select',
-            0x123 : 'start',
-            0x2c0 : 'PS',
-
-            0x12a : 'L1',
-            0x12b : 'R1',
-            0x128 : 'L2',
-            0x129 : 'R2',
-            0x121 : 'L3',
-            0x122 : 'R3',
-
-            0x12c : "triangle", 
-            0x12d : "circle",
-            0x12e : "cross",
-            0x12f : 'square',
-
-            0x124 : 'dpad_up',
-            0x126 : 'dpad_down',
-            0x127 : 'dpad_left',
-            0x125 : 'dpad_right',
-        }
-
-
-class PS3Joystick(Joystick):
-    '''
-    An interface to a physical PS3 joystick available at /dev/input/js0
-    Contains mapping that work for Raspian Stretch drivers
-    '''
-    def __init__(self, *args, **kwargs):
-        super(PS3Joystick, self).__init__(*args, **kwargs)
-
-        self.axis_names = {
-            0x00 : 'left_stick_horz',
-            0x01 : 'left_stick_vert',
-            0x03 : 'right_stick_horz',
-            0x04 : 'right_stick_vert',
-
-            0x02 : 'L2_pressure',
-            0x05 : 'R2_pressure',
-        }
-
-        self.button_names = {
-           0x13a : 'select', #8 314
-           0x13b : 'start', #9 315
-           0x13c : 'PS', #a  316
-
-           0x136 : 'L1', #4 310
-           0x137 : 'R1', #5 311
-           0x138 : 'L2', #6 312
-           0x139 : 'R2', #7 313
-           0x13d : 'L3', #b 317
-           0x13e : 'R3', #c 318
-
-           0x133 : "triangle",  #2 307
-           0x131 : "circle",    #1 305
-           0x130 : "cross",    #0 304
-           0x134 : 'square',    #3 308
-
-           0x220 : 'dpad_up', #d 544
-           0x221 : 'dpad_down', #e 545
-           0x222 : 'dpad_left', #f 546
-           0x223 : 'dpad_right', #10 547
-       }
-
-
-class PS4Joystick(Joystick):
-    '''
-    An interface to a physical PS4 joystick available at /dev/input/js0
-    '''
-    def __init__(self, *args, **kwargs):
-        super(PS4Joystick, self).__init__(*args, **kwargs)
-
-        self.axis_names = {
-            0x00 : 'left_stick_horz',
-            0x01 : 'left_stick_vert',
-            0x02 : 'right_stick_horz',
-            0x05 : 'right_stick_vert',
-
-            0x03 : 'left_trigger_axis',
-            0x04 : 'right_trigger_axis',
-
-            0x10 : 'dpad_leftright',
-            0x11 : 'dpad_updown',
-
-            0x19 : 'tilt_a',
-            0x1a : 'tilt_b',
-            0x1b : 'tilt_c',
-
-            0x06 : 'motion_a',
-            0x07 : 'motion_b',
-            0x08 : 'motion_c',
-        }
-
-        self.button_names = {
-
-            0x130 : 'square',
-            0x131 : 'cross',
-            0x132 : 'circle',
-            0x133 : 'triangle',
-
-            0x134 : 'L1',
-            0x135 : 'R1',
-            0x136 : 'L2',
-            0x137 : 'R2',
-            0x13a : 'L3',
-            0x13b : 'R3',
-
-            0x13d : 'pad',
-            0x138 : 'share',
-            0x139 : 'options',
-            0x13c : 'PS',
-        }
-
-
-class PS3JoystickPC(Joystick):
-    '''
-    An interface to a physical PS3 joystick available at /dev/input/js1
-    Seems to exhibit slightly different codes because driver is different?
-    when running from ubuntu 16.04, it will interfere w mouse until:
-    xinput set-prop "Sony PLAYSTATION(R)3 Controller" "Device Enabled" 0
-    It also wants /dev/input/js1 device filename, not js0
-    '''
-    def __init__(self, *args, **kwargs):
-        super(PS3JoystickPC, self).__init__(*args, **kwargs)
-
-        self.axis_names = {
-            0x00 : 'left_stick_horz',
-            0x01 : 'left_stick_vert',
-            0x03 : 'right_stick_horz',
-            0x04 : 'right_stick_vert',
-
-            0x1a : 'tilt_x',
-            0x1b : 'tilt_y',
-            0x3d : 'tilt_a',
-            0x3c : 'tilt_b',
-
-            0x32 : 'L1_pressure',
-            0x33 : 'R1_pressure',
-            0x05 : 'R2_pressure',
-            0x02 : 'L2_pressure',
-
-            0x36 : 'cross_pressure',
-            0x35 : 'circle_pressure',
-            0x37 : 'square_pressure',
-            0x34 : 'triangle_pressure',
-
-            0x2d : 'dpad_r_pressure',
-            0x2e : 'dpad_d_pressure',
-            0x2c : 'dpad_u_pressure',
-        }
-
-        self.button_names = {
-            0x13a : 'select',
-            0x13b : 'start',
-            0x13c : 'PS',
-
-            0x136 : 'L1',
-            0x137 : 'R1',
-            0x138 : 'L2',
-            0x139 : 'R2',
-            0x13d : 'L3',
-            0x13e : 'R3',
-
-            0x133 : "triangle",
-            0x131 : "circle",
-            0x130 : "cross",
-            0x134 : 'square',
-
-            0x220 : 'dpad_up',
-            0x221 : 'dpad_down',
-            0x222 : 'dpad_left',
-            0x223 : 'dpad_right',
-        }
-
-
-class PyGamePS4Joystick(PyGameJoystick):
-    '''
-    An interface to a physical PS4 joystick available via pygame
-    Windows setup: https://github.com/nefarius/ScpToolkit/releases/tag/v1.6.238.16010
-    '''
-    def __init__(self, *args, **kwargs):
-        super(PyGamePS4Joystick, self).__init__(*args, **kwargs)
-
-        self.axis_names = {
-            0x00 : 'left_stick_horz',
-            0x01 : 'left_stick_vert',
-            0x03 : 'right_stick_vert',
-            0x02 : 'right_stick_horz',
-        }
-
-        self.button_names = {
-            2 : "circle",
-            1 : "cross",
-            0 : 'square',
-            3 : "triangle",
-
-            8 : 'share',
-            9 : 'options',
-            13 : 'pad',
-
-            4 : 'L1',
-            5 : 'R1',
-            6 : 'L2',
-            7 : 'R2',
-            10 : 'L3',
-            11 : 'R3',
-            14 : 'dpad_left',
-            15 : 'dpad_right',
-            16 : 'dpad_down',
-            17 : 'dpad_up',
-        }
-
-
 class XboxOneJoystick(Joystick):
     '''
     An interface to a physical joystick 'Xbox Wireless Controller' controller.
@@ -538,131 +180,6 @@ class XboxOneJoystick(Joystick):
         }
 
 
-class LogitechJoystick(Joystick):
-    '''
-    An interface to a physical Logitech joystick available at /dev/input/js0
-    Contains mapping that work for Raspian Stretch drivers
-    Tested with Logitech Gamepad F710
-    https://www.amazon.com/Logitech-940-000117-Gamepad-F710/dp/B0041RR0TW
-    credit:
-    https://github.com/kevkruemp/donkeypart_logitech_controller/blob/master/donkeypart_logitech_controller/part.py
-    '''
-    def __init__(self, *args, **kwargs):
-        super(LogitechJoystick, self).__init__(*args, **kwargs)
-
-        self.axis_names = {
-            0x00: 'left_stick_horz',
-            0x01: 'left_stick_vert',
-            0x03: 'right_stick_horz',
-            0x04: 'right_stick_vert',
-
-            0x02: 'L2_pressure',
-            0x05: 'R2_pressure',
-
-            0x10: 'dpad_leftright', # 1 is right, -1 is left
-            0x11: 'dpad_up_down', # 1 is down, -1 is up
-        }
-
-        self.button_names = {
-            0x13a: 'back',  # 8 314
-            0x13b: 'start',  # 9 315
-            0x13c: 'Logitech',  # a  316
-
-            0x130: 'A',
-            0x131: 'B',
-            0x133: 'X',
-            0x134: 'Y',
-
-            0x136: 'L1',
-            0x137: 'R1',
-
-            0x13d: 'left_stick_press',
-            0x13e: 'right_stick_press',
-        }
-
-
-class Nimbus(Joystick):
-    #An interface to a physical joystick available at /dev/input/js0
-    #contains mappings that work for the SteelNimbus joystick
-    #on Jetson TX2, JetPack 4.2, Ubuntu 18.04
-    def __init__(self, *args, **kwargs):
-        super(Nimbus, self).__init__(*args, **kwargs)
-
-        self.button_names = {
-            0x130 : 'a',
-            0x131 : 'b',
-            0x132 : 'x',
-            0x133 : 'y',
-            0x135 : 'R1',
-            0x137 : 'R2',
-            0x134 : 'L1',
-            0x136 : 'L2',
-        }
-
-        self.axis_names = {
-            0x0 : 'lx',
-            0x1 : 'ly',
-            0x2 : 'rx',
-            0x5 : 'ry',
-            0x11 : 'hmm',
-            0x10 : 'what',
-        }
-
-
-class WiiU(Joystick):
-    #An interface to a physical joystick available at /dev/input/js0
-    #contains mappings may work for the WiiUPro joystick
-    #This was taken from
-    #https://github.com/autorope/donkeypart_bluetooth_game_controller/blob/master/donkeypart_bluetooth_game_controller/wiiu_config.yml
-    #and need testing!
-    def __init__(self, *args, **kwargs):
-        super(WiiU, self).__init__(*args, **kwargs)
-
-        self.button_names = {
-            305: 'A',
-            304: 'B',
-            307: 'X',
-            308: 'Y',
-            312: 'LEFT_BOTTOM_TRIGGER',
-            310: 'LEFT_TOP_TRIGGER',
-            313: 'RIGHT_BOTTOM_TRIGGER',
-            311: 'RIGHT_TOP_TRIGGER',
-            317: 'LEFT_STICK_PRESS',
-            318: 'RIGHT_STICK_PRESS',
-            314: 'SELECT',
-            315: 'START',
-            547: 'PAD_RIGHT',
-            546: 'PAD_LEFT',
-            544: 'PAD_UP',
-            548: 'PAD_DOWN,',
-        }
-
-        self.axis_names = {
-            0: 'LEFT_STICK_X',
-            1: 'LEFT_STICK_Y',
-            3: 'RIGHT_STICK_X',
-            4: 'RIGHT_STICK_Y',
-        }
-
-
-class RC3ChanJoystick(Joystick):
-    #An interface to a physical joystick available at /dev/input/js0
-    def __init__(self, *args, **kwargs):
-        super(RC3ChanJoystick, self).__init__(*args, **kwargs)
-
-
-        self.button_names = {
-            0x120 : 'Switch-up',
-            0x121 : 'Switch-down',
-        }
-
-
-        self.axis_names = {
-            0x1 : 'Throttle',
-            0x0 : 'Steering',
-        }
-
-
 class JoystickController(object):
     '''
     JoystickController is a base class. You will not use this class directly,
@@ -685,7 +202,8 @@ class JoystickController(object):
                  steering_scale=1.0,
                  throttle_dir=-1.0,
                  dev_fn='/dev/input/js0',
-                 auto_record_on_throttle=True):
+                 auto_record_on_throttle=True,
+                 per_throttle_step = 0.01):
 
         self.angle = 0.0
         self.throttle = 0.0
@@ -706,6 +224,7 @@ class JoystickController(object):
         self.estop_state = self.ES_IDLE
         self.chaos_monkey_steering = None
         self.dead_zone = 0.0
+        self.per_throttle_step = per_throttle_step
 
         self.button_down_trigger_map = {}
         self.button_up_trigger_map = {}
@@ -883,7 +402,7 @@ class JoystickController(object):
         '''
         increase throttle scale setting
         '''
-        self.throttle_scale = round(min(1.0, self.throttle_scale + 0.01), 2)
+        self.throttle_scale = round(min(1.0, self.throttle_scale + self.per_throttle_step), 2)
         if self.constant_throttle:
             self.throttle = self.throttle_scale
             self.on_throttle_changes()
@@ -897,7 +416,7 @@ class JoystickController(object):
         '''
         decrease throttle scale setting
         '''
-        self.throttle_scale = round(max(0.0, self.throttle_scale - 0.01), 2)
+        self.throttle_scale = round(max(0.0, self.throttle_scale - self.per_throttle_step), 2)
         if self.constant_throttle:
             self.throttle = self.throttle_scale
             self.on_throttle_changes()
@@ -991,160 +510,50 @@ class JoystickController(object):
         time.sleep(0.5)
 
 
-class JoystickCreatorController(JoystickController):
-    '''
-    A Controller object helps create a new controller object and mapping
-    '''
-    def __init__(self, *args, **kwargs):
-        super(JoystickCreatorController, self).__init__(*args, **kwargs)
-
-
-    def init_js(self):
-        '''
-        attempt to init joystick
-        '''
-        try:
-            self.js = JoystickCreator(self.dev_fn)
-            if not self.js.init():
-                self.js = None
-        except FileNotFoundError:
-            print(self.dev_fn, "not found.")
-            self.js = None
-
-        return self.js is not None
-
-
-    def init_trigger_maps(self):
-        '''
-        init set of mapping from buttons to function calls
-        '''
-        pass
-
-
-class PS3JoystickController(JoystickController):
-    '''
-    A Controller object that maps inputs to actions
-    '''
-    def __init__(self, *args, **kwargs):
-        super(PS3JoystickController, self).__init__(*args, **kwargs)
-
-
-    def init_js(self):
-        '''
-        attempt to init joystick
-        '''
-        try:
-            self.js = PS3Joystick(self.dev_fn)
-            if not self.js.init():
-                self.js = None
-        except FileNotFoundError:
-            print(self.dev_fn, "not found.")
-            self.js = None
-        return self.js is not None
-
-
-    def init_trigger_maps(self):
-        '''
-        init set of mapping from buttons to function calls
-        '''
-
-        self.button_down_trigger_map = {
-            'select' : self.toggle_mode,
-            'circle' : self.toggle_manual_recording,
-            'triangle' : self.erase_last_N_records,
-            'cross' : self.emergency_stop,
-            'dpad_up' : self.increase_max_throttle,
-            'dpad_down' : self.decrease_max_throttle,
-            'start' : self.toggle_constant_throttle,
-            "R1" : self.chaos_monkey_on_right,
-            "L1" : self.chaos_monkey_on_left,
-        }
-
-        self.button_up_trigger_map = {
-            "R1" : self.chaos_monkey_off,
-            "L1" : self.chaos_monkey_off,
-        }
-
-        self.axis_trigger_map = {
-            'left_stick_horz' : self.set_steering,
-            'right_stick_vert' : self.set_throttle,
-        }
-
-
-class PS4JoystickController(JoystickController):
-    '''
-    A Controller object that maps inputs to actions
-    '''
-    def __init__(self, *args, **kwargs):
-        super(PS4JoystickController, self).__init__(*args, **kwargs)
-
-
-    def init_js(self):
-        '''
-        attempt to init joystick
-        '''
-        try:
-            self.js = PS4Joystick(self.dev_fn)
-            if not self.js.init():
-                self.js = None
-        except FileNotFoundError:
-            print(self.dev_fn, "not found.")
-            self.js = None
-        return self.js is not None
-
-
-    def init_trigger_maps(self):
-        '''
-        init set of mapping from buttons to function calls for ps4
-        '''
-
-        self.button_down_trigger_map = {
-            'share' : self.toggle_mode,
-            'circle' : self.toggle_manual_recording,
-            'triangle' : self.erase_last_N_records,
-            'cross' : self.emergency_stop,
-            'L1' : self.increase_max_throttle,
-            'R1' : self.decrease_max_throttle,
-            'options' : self.toggle_constant_throttle,
-        }
-
-        self.axis_trigger_map = {
-            'left_stick_horz' : self.set_steering,
-            'right_stick_vert' : self.set_throttle,
-        }
-
-
-class PyGamePS4JoystickController(PS4JoystickController):
-    '''
-    A Controller object that maps inputs to actions
-    '''
-    def __init__(self, which_js=0, *args, **kwargs):
-        super(PyGamePS4JoystickController, self).__init__(*args, **kwargs)
-        self.which_js=which_js
-
-
-    def init_js(self):
-        '''
-        attempt to init joystick
-        '''
-        try:
-            self.js = PyGamePS4Joystick(which_js=self.which_js)
-        except Exception as e:
-            print(e)
-            self.js = None
-        return self.js is not None
-
-
-
 class XboxOneJoystickController(JoystickController):
     '''
     A Controller object that maps inputs to actions
     credit:
     https://github.com/Ezward/donkeypart_ps3_controller/blob/master/donkeypart_ps3_controller/part.py
     '''
-    def __init__(self, *args, **kwargs):
-        super(XboxOneJoystickController, self).__init__(*args, **kwargs)
+    def __init__(self, poll_delay=0.0,
+                 throttle_scale=1.0,
+                 steering_scale=1.0,
+                 throttle_dir=-1.0,
+                 dev_fn='/dev/input/js0',
+                 auto_record_on_throttle=True,
+                 per_throttle_step = 0.01,
+                 gentle_throttle = 0.5,
+                 rage_throttle = 0.9):
 
+        self.angle = 0.0
+        self.throttle = 0.0
+        self.mode = 'user'
+        self.poll_delay = poll_delay
+        self.running = True
+        self.last_throttle_axis_val = 0
+        self.throttle_scale = throttle_scale
+        self.steering_scale = steering_scale
+        self.throttle_dir = throttle_dir
+        self.recording = False
+        self.constant_throttle = False
+        self.auto_record_on_throttle = auto_record_on_throttle
+        self.dev_fn = dev_fn
+        self.js = None
+        self.tub = None
+        self.num_records_to_erase = 100
+        self.estop_state = self.ES_IDLE
+        self.chaos_monkey_steering = None
+        self.dead_zone = 0.0
+        self.per_throttle_step = per_throttle_step
+
+        self.gentle_throttle = gentle_throttle
+        self.rage_throttle = rage_throttle
+
+        self.button_down_trigger_map = {}
+        self.button_up_trigger_map = {}
+        self.axis_trigger_map = {}
+        self.init_trigger_maps()
 
     def init_js(self):
         '''
@@ -1174,6 +583,43 @@ class XboxOneJoystickController(JoystickController):
             self.set_throttle(magnitude)
         return set_magnitude
 
+    def gentle_mode(self):
+        target_throttle = self.gentle_throttle
+        
+        def constant_gentle_mode(axis_val):
+            '''
+            Maps raw axis values to magnitude.
+            '''
+            # Axis values range from -1. to 1.
+            minimum = -1.
+            maximum = 1.
+            # Magnitude is now normalized in the range of 0 - 1.
+            magnitude = (axis_val - minimum) / (maximum - minimum)
+
+            self.last_throttle_axis_val = magnitude
+            self.throttle = target_throttle
+            self.on_throttle_changes()
+        return constant_gentle_mode
+
+    def rage_mode(self):
+        target_throttle = self.rage_throttle
+        
+        def constant_rage_mode(axis_val):
+            '''
+            Maps raw axis values to magnitude.
+            '''
+            # Axis values range from -1. to 1.
+            minimum = -1.
+            maximum = 1.
+            # Magnitude is now normalized in the range of 0 - 1.
+            magnitude = (axis_val - minimum) / (maximum - minimum)
+
+            self.last_throttle_axis_val = magnitude
+            self.throttle = target_throttle
+            self.on_throttle_changes()
+        return constant_rage_mode
+    
+
 
     def init_trigger_maps(self):
         '''
@@ -1194,8 +640,10 @@ class XboxOneJoystickController(JoystickController):
             'left_stick_horz': self.set_steering,
             'right_stick_vert': self.set_throttle,
             # Forza Mode
-            'right_trigger': self.magnitude(),
-            'left_trigger': self.magnitude(reversed = True),
+            # 'right_trigger': self.magnitude(),
+            # 'left_trigger': self.magnitude(reversed = True),
+            'right_trigger': self.rage_mode(),
+            'left_trigger': self.gentle_mode(),
         }
 
 class XboxOneSwappedJoystickController(XboxOneJoystickController):
@@ -1218,196 +666,6 @@ class XboxOneSwappedJoystickController(XboxOneJoystickController):
         # unmap default assinments to the axes
         self.set_axis_trigger('left_stick_horz', self.do_nothing)
         self.set_axis_trigger('right_stick_vert', self.do_nothing)
-
-
-class LogitechJoystickController(JoystickController):
-    '''
-    A Controller object that maps inputs to actions
-    credit:
-    https://github.com/kevkruemp/donkeypart_logitech_controller/blob/master/donkeypart_logitech_controller/part.py
-    '''
-    def __init__(self, *args, **kwargs):
-        super(LogitechJoystickController, self).__init__(*args, **kwargs)
-
-
-    def init_js(self):
-        '''
-        attempt to init joystick
-        '''
-        try:
-            self.js = LogitechJoystick(self.dev_fn)
-            self.js.init()
-        except FileNotFoundError:
-            print(self.dev_fn, "not found.")
-            self.js = None
-        return self.js is not None
-
-
-    def init_trigger_maps(self):
-        '''
-        init set of mapping from buttons to function calls
-        '''
-
-        self.button_down_trigger_map = {
-            'start': self.toggle_mode,
-            'B': self.toggle_manual_recording,
-            'Y': self.erase_last_N_records,
-            'A': self.emergency_stop,
-            'back': self.toggle_constant_throttle,
-            "R1" : self.chaos_monkey_on_right,
-            "L1" : self.chaos_monkey_on_left,
-        }
-
-        self.button_up_trigger_map = {
-            "R1" : self.chaos_monkey_off,
-            "L1" : self.chaos_monkey_off,
-        }
-
-        self.axis_trigger_map = {
-            'left_stick_horz': self.set_steering,
-            'right_stick_vert': self.set_throttle,
-            'dpad_leftright' : self.on_axis_dpad_LR,
-            'dpad_up_down' : self.on_axis_dpad_UD,
-        }
-
-    def on_axis_dpad_LR(self, val):
-        if val == -1.0:
-            self.on_dpad_left()
-        elif val == 1.0:
-            self.on_dpad_right()
-
-    def on_axis_dpad_UD(self, val):
-        if val == -1.0:
-            self.on_dpad_up()
-        elif val == 1.0:
-            self.on_dpad_down()
-
-    def on_dpad_up(self):
-        self.increase_max_throttle()
-
-    def on_dpad_down(self):
-        self.decrease_max_throttle()
-
-    def on_dpad_left(self):
-        print("dpad left un-mapped")
-
-    def on_dpad_right(self):
-        print("dpad right un-mapped")
-
-
-class NimbusController(JoystickController):
-    #A Controller object that maps inputs to actions
-    def __init__(self, *args, **kwargs):
-        super(NimbusController, self).__init__(*args, **kwargs)
-
-
-    def init_js(self):
-        #attempt to init joystick
-        try:
-            self.js = Nimbus(self.dev_fn)
-            self.js.init()
-        except FileNotFoundError:
-            print(self.dev_fn, "not found.")
-            self.js = None
-        return self.js is not None
-
-
-    def init_trigger_maps(self):
-        #init set of mapping from buttons to function calls
-
-        self.button_down_trigger_map = {
-            'y' : self.erase_last_N_records,
-            'b' : self.toggle_mode,
-            'a' : self.emergency_stop,
-        }
-
-        self.axis_trigger_map = {
-            'lx' : self.set_steering,
-            'ry' : self.set_throttle,
-        }
-
-
-class WiiUController(JoystickController):
-    #A Controller object that maps inputs to actions
-    def __init__(self, *args, **kwargs):
-        super(WiiUController, self).__init__(*args, **kwargs)
-
-
-    def init_js(self):
-        #attempt to init joystick
-        try:
-            self.js = WiiU(self.dev_fn)
-            self.js.init()
-        except FileNotFoundError:
-            print(self.dev_fn, "not found.")
-            self.js = None
-        return self.js is not None
-
-
-    def init_trigger_maps(self):
-        #init set of mapping from buttons to function calls
-
-        self.button_down_trigger_map = {
-            'Y' : self.erase_last_N_records,
-            'B' : self.toggle_mode,
-            'A' : self.emergency_stop,
-        }
-
-        self.axis_trigger_map = {
-            'LEFT_STICK_X' : self.set_steering,
-            'RIGHT_STICK_Y' : self.set_throttle,
-        }
-
-
-
-class RC3ChanJoystickController(JoystickController):
-    #A Controller object that maps inputs to actions
-    def __init__(self, *args, **kwargs):
-        super(RC3ChanJoystickController, self).__init__(*args, **kwargs)
-
-
-    def init_js(self):
-        #attempt to init joystick
-        try:
-            self.js = RC3ChanJoystick(self.dev_fn)
-            self.js.init()
-        except FileNotFoundError:
-            print(self.dev_fn, "not found.")
-            self.js = None
-        return self.js is not None
-
-    def on_steering(self, val, reverse = True):
-        if reversed:
-            val *= -1
-        self.set_steering(val)
-
-    def on_throttle(self, val, reverse = True):
-        if reversed:
-            val *= -1
-        self.set_throttle(val)
-
-    def on_switch_up(self):
-        if self.mode == 'user':
-            self.erase_last_N_records()
-        else:
-            self.emergency_stop()
-
-    def on_switch_down(self):
-        self.toggle_mode()
-
-    def init_trigger_maps(self):
-        #init set of mapping from buttons to function calls
-
-        self.button_down_trigger_map = {
-            'Switch-down' : self.on_switch_down,
-            'Switch-up' : self.on_switch_up,
-        }
-
-
-        self.axis_trigger_map = {
-            'Steering' : self.on_steering,
-            'Throttle' : self.on_throttle,
-        }
 
 
 class JoyStickPub(object):
@@ -1486,64 +744,64 @@ class JoyStickSub(object):
         self.axis = None
         return ret
 
+class JoystickCreator(Joystick):
+    '''
+    A Helper class to create a new joystick mapping
+    '''
+    def __init__(self, *args, **kwargs):
+        super(JoystickCreator, self).__init__(*args, **kwargs)
+
+        self.axis_names = {}
+        self.button_names = {}
+
+    def poll(self):
+
+        button, button_state, axis, axis_val = super(JoystickCreator, self).poll()
+
+        return button, button_state, axis, axis_val
+
+
+class JoystickCreatorController(JoystickController):
+    '''
+    A Controller object helps create a new controller object and mapping
+    '''
+    def __init__(self, *args, **kwargs):
+        super(JoystickCreatorController, self).__init__(*args, **kwargs)
+
+
+    def init_js(self):
+        '''
+        attempt to init joystick
+        '''
+        try:
+            self.js = JoystickCreator(self.dev_fn)
+            if not self.js.init():
+                self.js = None
+        except FileNotFoundError:
+            print(self.dev_fn, "not found.")
+            self.js = None
+
+        return self.js is not None
+
+
+    def init_trigger_maps(self):
+        '''
+        init set of mapping from buttons to function calls
+        '''
+        pass
+
 
 def get_js_controller(cfg):
     cont_class = None
-    if cfg.CONTROLLER_TYPE == "ps3":
-        cont_class = PS3JoystickController
-    elif cfg.CONTROLLER_TYPE == "ps4":
-        cont_class = PS4JoystickController
-    elif cfg.CONTROLLER_TYPE == "nimbus":
-        cont_class = NimbusController
-    elif cfg.CONTROLLER_TYPE == "xbox":
-        cont_class = XboxOneJoystickController
-    elif cfg.CONTROLLER_TYPE == "xboxswapped":
-        cont_class = XboxOneSwappedJoystickController
-    elif cfg.CONTROLLER_TYPE == "wiiu":
-        cont_class = WiiUController
-    elif cfg.CONTROLLER_TYPE == "F710":
-        cont_class = LogitechJoystickController
-    elif cfg.CONTROLLER_TYPE == "rc3":
-        cont_class = RC3ChanJoystickController
-    elif cfg.CONTROLLER_TYPE == "pygame":
-        cont_class = PyGamePS4JoystickController
-    else:
-        raise( Exception("Unknown controller type: " + cfg.CONTROLLER_TYPE))
-
+    cont_class = XboxOneJoystickController
     ctr = cont_class(throttle_dir=cfg.JOYSTICK_THROTTLE_DIR,
                                 throttle_scale=cfg.JOYSTICK_MAX_THROTTLE,
                                 steering_scale=cfg.JOYSTICK_STEERING_SCALE,
                                 auto_record_on_throttle=cfg.AUTO_RECORD_ON_THROTTLE,
-                                dev_fn=cfg.JOYSTICK_DEVICE_FILE)
+                                dev_fn=cfg.JOYSTICK_DEVICE_FILE,
+                                gentle_throttle = cfg.GENTLE_THROTTLE,
+                                rage_throttle = cfg.RAGE_THROTTLE,
+                                per_throttle_step = cfg.PER_THROTTLE_STEP)
 
     ctr.set_deadzone(cfg.JOYSTICK_DEADZONE)
     return ctr
-
-if __name__ == "__main__":
-    '''
-    publish ps3 controller
-    when running from ubuntu 16.04, it will interfere w mouse until:
-    xinput set-prop "Sony PLAYSTATION(R)3 Controller" "Device Enabled" 0
-    '''
-    print("You may need:")
-    print('xinput set-prop "Sony PLAYSTATION(R)3 Controller" "Device Enabled" 0')
-    #p = JoyStickPub()
-
-    
-    #Ps4 pygame controller test.
-    import donkeycar
-    v = donkeycar.vehicle.Vehicle()
-    p = PyGamePS4JoystickController()
-    v.add(p, inputs=['cam/image_array'],
-          outputs=['user/angle', 'user/throttle', 'user/mode', 'recording'],
-          threaded=True)
-    v.start(max_loop_count = 100)
-    
-    '''
-    j = PyGamePS4Joystick(which_js=0)
-    i = 0
-    while i < 100:
-        j.poll()
-        time.sleep(0.1)
-        i += 1
-    '''
