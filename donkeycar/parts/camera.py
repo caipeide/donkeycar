@@ -181,7 +181,7 @@ class CSICamera(BaseCamera):
         import cv2
         self.ret , frame = self.camera.read()
         # do cropping
-        frame = cv2.resize(frame[self.crop_top:(self.h-self.crop_bottom),:,:], (self.w, self.h), interpolation = cv2.INTER_AREA)
+        frame = cv2.resize(frame[self.crop_top:(self.h-self.crop_bottom),:,:], (self.w, self.h))
         self.frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
     def run(self):
