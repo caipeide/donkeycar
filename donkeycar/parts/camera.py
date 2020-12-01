@@ -153,6 +153,7 @@ class CSICamera(BaseCamera):
         self.framerate = framerate
         self.crop_top = crop_top
         self.crop_bottom = crop_bottom
+        self.init_camera()
 
     def init_camera(self):
         import cv2
@@ -173,7 +174,7 @@ class CSICamera(BaseCamera):
         time.sleep(2)
         
     def update(self):
-        self.init_camera()
+        # self.init_camera()
         while self.running:
             self.poll_camera()
 
