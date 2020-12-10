@@ -248,10 +248,12 @@ def map_range(x, X_min, X_max, Y_min, Y_max):
     Y_range = Y_max - Y_min
     XY_ratio = X_range/Y_range
 
-    y = ((x-X_min) / XY_ratio + Y_min) // 1
+    # y = ((x-X_min) / XY_ratio + Y_min) // 1
+    # return int(y)
 
-    return int(y)
+    y = ((x-X_min) / XY_ratio + Y_min)
 
+    return y
 
 def map_range_float(x, X_min, X_max, Y_min, Y_max):
     '''
