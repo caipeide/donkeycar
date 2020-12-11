@@ -212,7 +212,7 @@ class PWMThrottle:
     Wrapper over a PWM motor controller to convert -1 to 1 throttle
     values to PWM pulses.
     """
-    MIN_THROTTLE = -0.66
+    MIN_THROTTLE = -0.75
     MAX_THROTTLE = 1
 
     def __init__(self,
