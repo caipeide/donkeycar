@@ -104,6 +104,10 @@ class Vehicle:
         self.parts.append(entry)
         self.profiler.profile_part(part)
 
+        # we start the UWB reading part here to check its function, if it is not working properly, we have to do reinsertion
+        if p.__class__.__name__ == 'UWBClass':
+            t.start()
+            
     def remove(self, part):
         """
         remove part form list
@@ -137,8 +141,9 @@ class Vehicle:
 
             for entry in self.parts:
                 if entry.get('thread'):
-                    # start the update thread
-                    entry.get('thread').start()
+                    # start the update thread if not UWB (aready started when adding it)
+                    if entry.get('part').__class__.__name__ != 'UWBClass':
+                        entry.get('thread').start()
 
             # wait until the parts warm up.
             print('Starting vehicle at {} Hz'.format(rate_hz))
