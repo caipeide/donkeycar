@@ -255,6 +255,29 @@ def map_range(x, X_min, X_max, Y_min, Y_max):
 
     return y
 
+def map_range_piecewise(x, X_min, X_max, Y_min, Y_max):
+    '''
+    throttle, 0, self.MAX_THROTTLE, self.zero_pulse+20, self.max_pulse
+    Linear mapping between two ranges of values
+    we here assume that Y_min = 410, Y_max = 445
+    return:
+        y: pulse pwm
+    '''
+    p0 = 410
+    p1 = 416
+    p2 = 422.25
+    p3 = 445
+
+    x = X_max * x
+    if x <= 0.5:
+        y = p0 + x * (p1 - p0)/0.5
+    elif x <= 0.7:
+        y = p1 + (x - 0.5) * (p2-p1)/0.2
+    else:
+        y = p2 + (x - 0.7) * (p3-p2)/0.3
+
+    return y
+
 def map_range_float(x, X_min, X_max, Y_min, Y_max):
     '''
     Same as map_range but supports floats return, rounded to 2 decimal places
