@@ -244,8 +244,8 @@ class PWMThrottle:
 
     def run_threaded(self, throttle):
         if throttle > 0:
-            self.pulse = dk.utils.map_range_piecewise(throttle, 0, self.MAX_THROTTLE,
-                                            self.zero_pulse+20, self.max_pulse)
+            self.pulse = dk.utils.map_range(throttle, 0, self.MAX_THROTTLE,
+                                            self.zero_pulse, self.max_pulse)
         else:
             self.pulse = dk.utils.map_range(throttle, self.MIN_THROTTLE, 0,
                                             self.min_pulse, self.zero_pulse)
